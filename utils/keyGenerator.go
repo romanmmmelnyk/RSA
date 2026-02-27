@@ -145,8 +145,6 @@ func GenerateHeavyPQ(bitsPerPrime int) (*big.Int, *big.Int, error) {
 }
 
 func GenerateKeysHeavy(bitsPerPrime int) (*RSAKeys, error) {
-	totalStart := time.Now()
-
 	p, q, err := GenerateHeavyPQ(bitsPerPrime)
 	if err != nil {
 		return nil, err
@@ -157,49 +155,29 @@ func GenerateKeysHeavy(bitsPerPrime int) (*RSAKeys, error) {
 	pm1 := new(big.Int).Sub(p, one)
 	qm1 := new(big.Int).Sub(q, one)
 
-	nStart := time.Now()
 	n := new(big.Int).Mul(p, q)
-	nTime := time.Since(nStart)
 
-	phiStart := time.Now()
 	phi := new(big.Int).Mul(pm1, qm1)
-	phiTime := time.Since(phiStart)
 
 	e := big.NewInt(65537)
 
-	gcdStart := time.Now()
 	g := new(big.Int)
 	g.GCD(nil, nil, e, phi)
-	gcdTime := time.Since(gcdStart)
 	if g.Cmp(one) != 0 {
 		return nil, errors.New("gcd(e, phi) != 1; regenerate primes")
 	}
 
-	dStart := time.Now()
 	d := new(big.Int).ModInverse(e, phi)
-	dTime := time.Since(dStart)
 	if d == nil {
 		return nil, errors.New("no modular inverse for e")
 	}
 
-	crtStart := time.Now()
 	dp := new(big.Int).Mod(d, pm1)
 	dq := new(big.Int).Mod(d, qm1)
 	qInv := new(big.Int).ModInverse(q, p)
-	crtTime := time.Since(crtStart)
 	if qInv == nil {
 		return nil, errors.New("no modular inverse for q mod p")
 	}
-
-	totalTime := time.Since(totalStart)
-
-	println("GenerateKeysHeavy:")
-	println("  n(ns):", nTime.Nanoseconds())
-	println("  phi(ns):", phiTime.Nanoseconds())
-	println("  gcd(ns):", gcdTime.Nanoseconds())
-	println("  modInverse(ns):", dTime.Nanoseconds())
-	println("  crt(ns):", crtTime.Nanoseconds())
-	println("  total:", totalTime.Nanoseconds(), "ns")
 
 	return &RSAKeys{
 		E: new(big.Int).Set(e),

@@ -8,23 +8,19 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/romanmmmelnyk/RSA.git/utils"
 )
 
 func main() {
+	keygenStart := time.Now()
 	keys, err := utils.GenerateKeysHeavy(512)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("PUBLIC KEY (E, N):")
-	fmt.Println("E =", keys.E.String())
-	fmt.Println("N =", keys.N.String())
-	fmt.Println()
-	fmt.Println("PRIVATE KEY (D):")
-	fmt.Println("D =", keys.D.String())
-	fmt.Println()
+	fmt.Printf("Keygen total: %s\n", time.Since(keygenStart))
+	fmt.Printf("Key size: %d bits\n\n", keys.N.BitLen())
 
 	in := bufio.NewReader(os.Stdin)
 	fmt.Print("Message: ")
@@ -37,9 +33,12 @@ func main() {
 		log.Fatal("message too long for this N (m must be < N). Use shorter message or bigger primes.")
 	}
 
-	c := utils.PowerBig(m, keys.E, keys.N)
+	c := new(big.Int).Exp(m, keys.E, keys.N)
 
-	m2 := utils.PowerBig(c, keys.D, keys.N)
+	m2, err := utils.DecryptCRT(c, keys)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	plain := string(m2.Bytes())
 
